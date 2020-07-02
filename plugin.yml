@@ -1,0 +1,9 @@
+---
+name: ModelingedHumanoidLib
+main: blugin\lib\ModelingedHumanoidLib
+version: 1.0.0
+api: [4.0.0]
+authors: ['Blugin-team', 'PresentKim']
+description: 'Core plugin designed to reduce duplicate code'
+load: STARTUP
+...
