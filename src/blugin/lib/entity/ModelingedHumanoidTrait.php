@@ -64,7 +64,7 @@ trait ModelingedHumanoidTrait{
         $pk->uuid = $this->uuid;
         $pk->username = "";
         $pk->entityRuntimeId = $this->id;
-        $pk->position = $this->getOffsetPosition($this->location)->subtract(0, $this->eyeHeight, 0);
+        $pk->position = $this->getSpawnPosition($this->location);
         $pk->pitch = $this->location->pitch;
         $pk->yaw = $this->location->yaw;
         $pk->item = ItemStack::null();
@@ -118,5 +118,14 @@ trait ModelingedHumanoidTrait{
      */
     public function getOffsetPosition(Vector3 $vector3) : Vector3{
         return $vector3->add(0, $this->getBaseOffset(), 0);
+    }
+
+    /**
+     * @param Vector3 $vector3
+     *
+     * @return Vector3
+     */
+    public function getSpawnPosition(Vector3 $vector3) : Vector3{
+        return $this->getOffsetPosition($vector3)->subtract(0, $this->eyeHeight, 0);
     }
 }
