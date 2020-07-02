@@ -48,9 +48,6 @@ trait ModelingedHumanoidTrait{
         return EntityIds::PLAYER;
     }
 
-    /** @var float */
-    protected $baseOffset = -0.38; //1.62 - 2
-
     /** @var UUID */
     protected $uuid;
 
@@ -107,6 +104,11 @@ trait ModelingedHumanoidTrait{
         $this->getWorld()->broadcastPacketToViewers($this->location, $pk);
     }
 
+    /** @return float */
+    public function getBaseOffset() : float{
+        return -0.38; //1.62 - 2
+    }
+
     /**
      * @override 오프셋위치를 수정하기 위해 오버라이드
      *
@@ -115,6 +117,6 @@ trait ModelingedHumanoidTrait{
      * @return Vector3
      */
     public function getOffsetPosition(Vector3 $vector3) : Vector3{
-        return $vector3->add(0, $this->baseOffset, 0);
+        return $vector3->add(0, $this->getBaseOffset(), 0);
     }
 }
