@@ -55,7 +55,7 @@ trait ModelingedHumanoidTrait{
     protected $skinData;
 
     /**
-     * @override 플레이어로 소환하기 위해 오버라이드
+     * @override Override for to spawn as a player
      *
      * @param Player $player
      */
@@ -78,7 +78,7 @@ trait ModelingedHumanoidTrait{
     }
 
     /**
-     * @override 1.14.30 패킷 오류로 인해 오버라이드
+     * @override Override for to moving via MovePlayerPacket
      *
      * @param bool $teleport
      */
