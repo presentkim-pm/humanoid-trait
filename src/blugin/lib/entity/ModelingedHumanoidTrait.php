@@ -94,10 +94,12 @@ trait ModelingedHumanoidTrait{
     }
 
     /**
-     * 엔티티가 보이는 모든 플레이어에게 스킨 설정 패킷을 전송
+     * Sends the human's skin to the specified list of players.
+     *
+     * @param Player[]|null $targets
      */
-    public function updateSkin() : void{
-        $this->getWorld()->broadcastPacketToViewers($this->location, PlayerSkinPacket::create($this->uuid, $this->skinData));
+    public function sendSkin(?array $targets = null) : void{
+        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [PlayerSkinPacket::create($this->uuid, $this->skinData)]);
     }
 
     /** @return float */
