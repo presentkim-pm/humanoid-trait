@@ -94,6 +94,15 @@ trait ModelingedHumanoidTrait{
     }
 
     /**
+     * Sets the human's skin.
+     *
+     * @param SkinData $skinData
+     */
+    public function setSkin(SkinData $skinData) : void{
+        $this->skinData = $skinData;
+    }
+
+    /**
      * Sends the human's skin to the specified list of players.
      *
      * @param Player[]|null $targets
