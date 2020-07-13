@@ -113,7 +113,7 @@ trait ModelingedHumanoidTrait{
 
     /** @return float */
     public function getBaseOffset() : float{
-        return -0.38; //1.62 - 2
+        return 1.62;
     }
 
     /**
