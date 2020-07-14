@@ -42,7 +42,7 @@ use pocketmine\uuid\UUID;
 /**
  * This trait override most methods in the {@link EntityBase} abstract class.
  */
-trait ModelingedHumanoidTrait{
+trait FakePlayerTrait{
     /** @return string */
     public static function getNetworkTypeId() : string{
         return EntityIds::PLAYER;

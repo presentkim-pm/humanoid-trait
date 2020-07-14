@@ -28,13 +28,5 @@ declare(strict_types=1);
 namespace blugin\lib;
 
 use pocketmine\plugin\PluginBase;
-use pocketmine\utils\TextFormat;
 
-class ModelingedHumanoidLib extends PluginBase{
-    /**
-     * Called when the plugin is loaded, before calling onEnable()
-     */
-    public function onLoad() : void{
-        $this->getServer()->getLogger()->debug(TextFormat::AQUA . "[Blugin/lib] ModelingedHumanoidLib is loaded");
-    }
-}
+class FakePlayerLib extends PluginBase{}
