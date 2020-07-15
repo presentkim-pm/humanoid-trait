@@ -133,6 +133,6 @@ trait FakePlayerTrait{
      * @return Vector3
      */
     public function getSpawnPosition(Vector3 $vector3) : Vector3{
-        return $this->getOffsetPosition($vector3)->subtract(0, $this->eyeHeight, 0);
+        return $this->getOffsetPosition($vector3)->subtract(0, $this->getBaseOffset(), 0);
     }
 }
