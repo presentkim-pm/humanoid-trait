@@ -27,12 +27,17 @@ declare(strict_types=1);
 
 namespace blugin\lib\entity;
 
+use pocketmine\item\Item;
+use pocketmine\item\ItemFactory;
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
+use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
 use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
+use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\SkinData;
@@ -54,6 +59,9 @@ trait FakePlayerTrait{
     /** @var SkinData */
     protected $skinData;
 
+    /** @var Item */
+    protected $heldItem = null;
+
     /**
      * @override Override for to spawn as a player
      *
@@ -67,7 +75,7 @@ trait FakePlayerTrait{
         $pk->position = $this->getSpawnPosition($this->location);
         $pk->pitch = $this->location->pitch;
         $pk->yaw = $this->location->yaw;
-        $pk->item = ItemStack::null();
+        $pk->item = $this->getItemStackInHand();
         $pk->metadata = $this->getSyncedNetworkData(false);
 
         $this->server->broadcastPackets([$player], [
@@ -134,5 +142,35 @@ trait FakePlayerTrait{
      */
     public function getSpawnPosition(Vector3 $vector3) : Vector3{
         return $this->getOffsetPosition($vector3)->subtract(0, $this->getBaseOffset(), 0);
+    }
+
+    /**
+     * Returns the currently-held item.
+     *
+     * @return ItemStack $item
+     */
+    public function getItemStackInHand() : ItemStack{
+        return TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand());
+    }
+
+    /**
+     * Returns the currently-held item.
+     *
+     * @return Item $item
+     */
+    public function getItemInHand() : Item{
+        return $this->heldItem ?? ItemFactory::air();
+    }
+
+    /**
+     * Sets the item in the currently-held slot to the specified item.
+     *
+     * @param Item $item
+     */
+    public function setItemInHand(Item $item) : void{
+        $this->heldItem = $item;
+        $this->server->broadcastPackets($this->hasSpawned, [
+            MobEquipmentPacket::create($this->getId(), $this->getItemStackInHand(), 0, ContainerIds::INVENTORY)
+        ]);
     }
 }
