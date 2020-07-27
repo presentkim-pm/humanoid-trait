@@ -29,4 +29,4 @@ namespace blugin\lib;
 
 use pocketmine\plugin\PluginBase;
 
-class FakePlayerLib extends PluginBase{}
+class libHumanoid extends PluginBase{}

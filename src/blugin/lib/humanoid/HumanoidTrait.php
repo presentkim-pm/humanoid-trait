@@ -25,7 +25,7 @@
 
 declare(strict_types=1);
 
-namespace blugin\lib\entity;
+namespace blugin\lib\humanoid;
 
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
@@ -47,7 +47,7 @@ use pocketmine\uuid\UUID;
 /**
  * This trait override most methods in the {@link EntityBase} abstract class.
  */
-trait FakePlayerTrait{
+trait HumanoidTrait{
     /** @return string */
     public static function getNetworkTypeId() : string{
         return EntityIds::PLAYER;
