@@ -106,25 +106,6 @@ trait HumanoidTrait{
         $this->getWorld()->broadcastPacketToViewers($this->location, $pk);
     }
 
-    /**
-     * Sets the human's skin.
-     *
-     * @param SkinData $skinData
-     */
-    public function setSkin(SkinData $skinData) : void{
-        $this->skinData = $skinData;
-        $this->sendSkin();
-    }
-
-    /**
-     * Sends the human's skin to the specified list of players.
-     *
-     * @param Player[]|null $targets
-     */
-    public function sendSkin(?array $targets = null) : void{
-        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [PlayerSkinPacket::create($this->uuid, $this->skinData)]);
-    }
-
     /** @return float */
     public function getBaseOffset() : float{
         return 1.62;
@@ -148,6 +129,26 @@ trait HumanoidTrait{
      */
     public function getSpawnPosition(Vector3 $vector3) : Vector3{
         return $this->getOffsetPosition($vector3)->subtract(0, $this->getBaseOffset(), 0);
+    }
+
+
+    /**
+     * Sets the human's skin.
+     *
+     * @param SkinData $skinData
+     */
+    public function setSkin(SkinData $skinData) : void{
+        $this->skinData = $skinData;
+        $this->sendSkin();
+    }
+
+    /**
+     * Sends the human's skin to the specified list of players.
+     *
+     * @param Player[]|null $targets
+     */
+    public function sendSkin(?array $targets = null) : void{
+        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [PlayerSkinPacket::create($this->uuid, $this->skinData)]);
     }
 
     /**
