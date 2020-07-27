@@ -125,7 +125,7 @@ trait HumanoidTrait{
     }
 
     /**
-     * @override 오프셋위치를 수정하기 위해 오버라이드
+     * @override Override for fit offset position
      *
      * @param Vector3 $vector3
      *
