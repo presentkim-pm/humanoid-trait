@@ -39,7 +39,6 @@ use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
 use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\SkinData;
 use pocketmine\player\Player;
@@ -79,7 +78,7 @@ trait HumanoidTrait{
         $pk->position = $this->getSpawnPosition($this->location);
         $pk->pitch = $this->location->pitch;
         $pk->yaw = $this->location->yaw;
-        $pk->item = $this->getItemStackInHand();
+        $pk->item = TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand());
         $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
         $pk->metadata = $this->getSyncedNetworkData(false);
 
@@ -152,13 +151,6 @@ trait HumanoidTrait{
     }
 
     /**
-     * @return ItemStack $item
-     */
-    public function getItemStackInHand() : ItemStack{
-        return TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand());
-    }
-
-    /**
      * @return Item $item
      */
     public function getItemInHand() : Item{
@@ -170,16 +162,10 @@ trait HumanoidTrait{
      */
     public function setItemInHand(Item $item) : void{
         $this->heldItem = $item;
+        $stack = TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand());
         $this->server->broadcastPackets($this->hasSpawned, [
-            MobEquipmentPacket::create($this->getId(), $this->getItemStackInHand(), 0, ContainerIds::INVENTORY)
+            MobEquipmentPacket::create($this->getId(), $stack, 0, ContainerIds::INVENTORY)
         ]);
-    }
-
-    /**
-     * @return ItemStack $item
-     */
-    public function getItemStackInOffHand() : ItemStack{
-        return TypeConverter::getInstance()->coreItemStackToNet($this->getItemInOffHand());
     }
 
     /**
@@ -203,8 +189,9 @@ trait HumanoidTrait{
      * @param Player[]|null $targets
      */
     public function sendOffHand(?array $targets = null) : void{
+        $stack = TypeConverter::getInstance()->coreItemStackToNet($this->getItemInOffHand());
         $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
-            MobEquipmentPacket::create($this->getId(), $this->getItemStackInOffHand(), 0, ContainerIds::OFFHAND)
+            MobEquipmentPacket::create($this->getId(), $stack, 0, ContainerIds::OFFHAND)
         ]);
     }
 }
