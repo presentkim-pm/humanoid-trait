@@ -113,6 +113,7 @@ trait HumanoidTrait{
      */
     public function setSkin(SkinData $skinData) : void{
         $this->skinData = $skinData;
+        $this->sendSkin();
     }
 
     /**
