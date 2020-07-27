@@ -37,6 +37,7 @@ use pocketmine\network\mcpe\protocol\MovePlayerPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
 use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
@@ -62,6 +63,9 @@ trait HumanoidTrait{
     /** @var Item */
     protected $heldItem = null;
 
+    /** @var Item */
+    protected $offhandItem = null;
+
     /**
      * @override Override for to spawn as a player
      *
@@ -76,6 +80,7 @@ trait HumanoidTrait{
         $pk->pitch = $this->location->pitch;
         $pk->yaw = $this->location->yaw;
         $pk->item = $this->getItemStackInHand();
+        $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
         $pk->metadata = $this->getSyncedNetworkData(false);
 
         $this->server->broadcastPackets([$player], [
@@ -83,6 +88,8 @@ trait HumanoidTrait{
             $pk,
             PlayerListPacket::remove([PlayerListEntry::createRemovalEntry($this->uuid)])
         ]);
+
+        $this->sendOffHand();
     }
 
     /**
@@ -145,8 +152,6 @@ trait HumanoidTrait{
     }
 
     /**
-     * Returns the currently-held item.
-     *
      * @return ItemStack $item
      */
     public function getItemStackInHand() : ItemStack{
@@ -154,8 +159,6 @@ trait HumanoidTrait{
     }
 
     /**
-     * Returns the currently-held item.
-     *
      * @return Item $item
      */
     public function getItemInHand() : Item{
@@ -163,14 +166,45 @@ trait HumanoidTrait{
     }
 
     /**
-     * Sets the item in the currently-held slot to the specified item.
-     *
      * @param Item $item
      */
     public function setItemInHand(Item $item) : void{
         $this->heldItem = $item;
         $this->server->broadcastPackets($this->hasSpawned, [
             MobEquipmentPacket::create($this->getId(), $this->getItemStackInHand(), 0, ContainerIds::INVENTORY)
+        ]);
+    }
+
+    /**
+     * @return ItemStack $item
+     */
+    public function getItemStackInOffHand() : ItemStack{
+        return TypeConverter::getInstance()->coreItemStackToNet($this->getItemInOffHand());
+    }
+
+    /**
+     * @return Item $item
+     */
+    public function getItemInOffHand() : Item{
+        return $this->offhandItem ?? ItemFactory::air();
+    }
+
+    /**
+     * @param Item $item
+     */
+    public function setItemInOffHand(Item $item) : void{
+        $this->offhandItem = $item;
+        $this->sendOffHand();
+    }
+
+    /**
+     * Sends the human's skin to the specified list of players.
+     *
+     * @param Player[]|null $targets
+     */
+    public function sendOffHand(?array $targets = null) : void{
+        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
+            MobEquipmentPacket::create($this->getId(), $this->getItemStackInOffHand(), 0, ContainerIds::OFFHAND)
         ]);
     }
 }
