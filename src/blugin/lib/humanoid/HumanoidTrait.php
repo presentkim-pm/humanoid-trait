@@ -85,10 +85,9 @@ trait HumanoidTrait{
         $this->server->broadcastPackets([$player], [
             PlayerListPacket::add([PlayerListEntry::createAdditionEntry($this->uuid, $this->id, "", $this->skinData)]),
             $pk,
-            PlayerListPacket::remove([PlayerListEntry::createRemovalEntry($this->uuid)])
+            PlayerListPacket::remove([PlayerListEntry::createRemovalEntry($this->uuid)]),
+            MobEquipmentPacket::create($this->getId(), TypeConverter::getInstance()->coreItemStackToNet($this->getItemInOffHand()), 0, ContainerIds::OFFHAND)
         ]);
-
-        $this->sendOffHand();
     }
 
     /**
@@ -162,10 +161,7 @@ trait HumanoidTrait{
      */
     public function setItemInHand(Item $item) : void{
         $this->heldItem = $item;
-        $stack = TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand());
-        $this->server->broadcastPackets($this->hasSpawned, [
-            MobEquipmentPacket::create($this->getId(), $stack, 0, ContainerIds::INVENTORY)
-        ]);
+        $this->sendEquipment($item, ContainerIds::INVENTORY);
     }
 
     /**
@@ -180,18 +176,19 @@ trait HumanoidTrait{
      */
     public function setItemInOffHand(Item $item) : void{
         $this->offhandItem = $item;
-        $this->sendOffHand();
+        $this->sendEquipment($item, ContainerIds::OFFHAND);
     }
 
     /**
-     * Sends the human's skin to the specified list of players.
-     *
-     * @param Player[]|null $targets
+     * @param Item       $item
+     * @param int        $windowId
+     * @param int        $inventorySlot = 0
+     * @param array|null $targets = null
      */
-    public function sendOffHand(?array $targets = null) : void{
-        $stack = TypeConverter::getInstance()->coreItemStackToNet($this->getItemInOffHand());
+    public function sendEquipment(Item $item, int $windowId, int $inventorySlot = 0, ?array $targets = null) : void{
+        $stack = TypeConverter::getInstance()->coreItemStackToNet($item);
         $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
-            MobEquipmentPacket::create($this->getId(), $stack, 0, ContainerIds::OFFHAND)
+            MobEquipmentPacket::create($this->getId(), $stack, $inventorySlot, $windowId)
         ]);
     }
 }
