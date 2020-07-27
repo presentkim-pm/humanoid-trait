@@ -132,50 +132,34 @@ trait HumanoidTrait{
     }
 
 
-    /**
-     * Sets the human's skin.
-     *
-     * @param SkinData $skinData
-     */
+    /** @param SkinData $skinData */
     public function setSkin(SkinData $skinData) : void{
         $this->skinData = $skinData;
         $this->sendSkin();
     }
 
-    /**
-     * Sends the human's skin to the specified list of players.
-     *
-     * @param Player[]|null $targets
-     */
+    /** @param Player[]|null $targets */
     public function sendSkin(?array $targets = null) : void{
         $this->server->broadcastPackets($targets ?? $this->hasSpawned, [PlayerSkinPacket::create($this->uuid, $this->skinData)]);
     }
 
-    /**
-     * @return Item $item
-     */
+    /** @return Item $item */
     public function getItemInHand() : Item{
         return $this->heldItem ?? ItemFactory::air();
     }
 
-    /**
-     * @param Item $item
-     */
+    /** @param Item $item */
     public function setItemInHand(Item $item) : void{
         $this->heldItem = $item;
         $this->sendEquipment($item, ContainerIds::INVENTORY);
     }
 
-    /**
-     * @return Item $item
-     */
+    /** @return Item $item */
     public function getItemInOffHand() : Item{
         return $this->offhandItem ?? ItemFactory::air();
     }
 
-    /**
-     * @param Item $item
-     */
+    /** @param Item $item */
     public function setItemInOffHand(Item $item) : void{
         $this->offhandItem = $item;
         $this->sendEquipment($item, ContainerIds::OFFHAND);
