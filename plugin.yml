@@ -1,9 +1,0 @@
----
-name: libHumanoid
-main: blugin\lib\libHumanoid
-version: 1.0.0
-api: [4.0.0]
-authors: ['Blugin-team', 'PresentKim']
-description: '[lib] Entity trait library for spawning humanoid'
-load: STARTUP
-...
