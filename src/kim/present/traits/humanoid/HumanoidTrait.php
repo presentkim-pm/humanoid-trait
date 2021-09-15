@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  *
  *  ____                           _   _  ___
  * |  _ \ _ __ ___  ___  ___ _ __ | |_| |/ (_)_ __ ___
@@ -18,6 +18,8 @@
  *   (\ /)
  *  ( . .) ♥
  *  c(")(")
+ *
+ * @noinspection PhpUnused
  */
 
 declare(strict_types=1);
@@ -32,75 +34,65 @@ use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
-use pocketmine\network\mcpe\protocol\types\ContainerIds;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
+use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
-use pocketmine\network\mcpe\protocol\types\SkinData;
-use pocketmine\Player;
-use pocketmine\utils\UUID;
+use pocketmine\network\mcpe\protocol\types\skin\SkinData;
+use pocketmine\player\Player;
+use Ramsey\Uuid\UuidInterface;
 
-/**
- * This trait override most methods in the {@link Entity} abstract class.
- */
+/** This trait override most methods in the {@link Entity} abstract class. */
 trait HumanoidTrait{
-    /** @var UUID */
-    protected $uuid;
-
-    /** @var SkinData */
-    protected $skinData;
-
-    /** @var Item */
-    protected $heldItem = null;
-
-    /** @var Item */
-    protected $offhandItem = null;
+    protected UuidInterface $uuid;
+    protected SkinData $skinData;
+    protected ?Item $heldItem = null;
+    protected ?Item $offhandItem = null;
 
     protected function sendSpawnPacket(Player $player) : void{
         $playerListAddPacket = new PlayerListPacket();
         $playerListAddPacket->type = PlayerListPacket::TYPE_ADD;
         $playerListAddPacket->entries = [PlayerListEntry::createAdditionEntry($this->uuid, $this->getId(), $this->getNameTag(), $this->skinData)];
-        $this->server->broadcastPacket([$player], $playerListAddPacket);
 
         $addPlayerPacket = new AddPlayerPacket();
         $addPlayerPacket->uuid = $this->uuid;
         $addPlayerPacket->username = "";
         $addPlayerPacket->entityRuntimeId = $this->id;
-        $addPlayerPacket->position = $this->getSpawnPosition($this->asVector3());
-        $addPlayerPacket->pitch = $this->getPitch();
-        $addPlayerPacket->yaw = $this->getYaw();
+        $addPlayerPacket->position = new Vector3(0, 0, 0);
+        $addPlayerPacket->pitch = $this->location->pitch;
+        $addPlayerPacket->yaw = $this->location->yaw;
         $addPlayerPacket->headYaw = $this->getHeadYaw();
         $addPlayerPacket->item = $this->getItemInHand();
-        $this->propertyManager->setByte(self::DATA_COLOR, 0);
-        $addPlayerPacket->metadata = $this->propertyManager->getAll();
-        $this->server->broadcastPacket([$player], $addPlayerPacket);
+        $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
+        $addPlayerPacket->metadata = $this->getAllNetworkData();
 
         $playerListRemovePacket = new PlayerListPacket();
         $playerListRemovePacket->type = PlayerListPacket::TYPE_REMOVE;
         $playerListRemovePacket->entries = [PlayerListEntry::createRemovalEntry($this->uuid)];
-        $this->server->broadcastPacket([$player], $playerListRemovePacket);
 
+        $this->server->broadcastPackets([$player], [$playerListAddPacket, $addPlayerPacket, $playerListRemovePacket]);
         $this->sendEquipment($this->getItemInOffHand(), ContainerIds::OFFHAND);
     }
 
-    public function getHeadYaw(){
-        return $this->yaw;
+    public function getHeadYaw() : float{
+        return $this->location->yaw;
     }
 
     public function broadcastMovement(bool $teleport = true) : void{
         $pk = new MovePlayerPacket();
         $pk->entityRuntimeId = $this->id;
-        $pk->position = $this->getOffsetPosition($this->asVector3());
-        $pk->pitch = $this->getPitch();
-        $pk->yaw = $this->getY();
+        $pk->position = $this->getOffsetPosition($this->location);
+        $pk->pitch = $this->location->pitch;
+        $pk->yaw = $this->location->y;
         $pk->headYaw = $this->getHeadYaw();
         $pk->mode = $teleport ? MovePlayerPacket::MODE_TELEPORT : MovePlayerPacket::MODE_NORMAL;
-        $this->getLevel()->broadcastPacketToViewers($this->asVector3(), $pk);
+        $this->location->world->broadcastPacketToViewers($this->getPosition(), $pk);
     }
 
     public function getBaseOffset() : float{
         return 1.62;
     }
 
-    public function getUniqueId() : ?UUID{
+    public function getUniqueId() : ?UuidInterface{
         return $this->uuid;
     }
 
@@ -126,11 +118,11 @@ trait HumanoidTrait{
         $pk = new PlayerSkinPacket();
         $pk->uuid = $this->getUniqueId();
         $pk->skin = $this->skinData;
-        $this->server->broadcastPacket($targets ?? $this->hasSpawned, $pk);
+        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [$pk]);
     }
 
     public function getItemInHand() : Item{
-        return $this->heldItem ?? ItemFactory::get(0);
+        return $this->heldItem ?? ItemFactory::getInstance()->get(0);
     }
 
     public function setItemInHand(Item $item) : void{
@@ -139,7 +131,7 @@ trait HumanoidTrait{
     }
 
     public function getItemInOffHand() : Item{
-        return $this->offhandItem ?? ItemFactory::get(0);
+        return $this->offhandItem ?? ItemFactory::getInstance()->get(0);
     }
 
     public function setItemInOffHand(Item $item) : void{
@@ -155,6 +147,6 @@ trait HumanoidTrait{
         $pk->inventorySlot = $pk->hotbarSlot = $inventorySlot;
         $pk->windowId = $windowId;
 
-        $this->server->broadcastPacket($targets ?? $this->hasSpawned, $pk);
+        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [$pk]);
     }
 }

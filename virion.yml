@@ -1,8 +1,8 @@
 ---
 name: humanoid-trait
 antigen: kim\present\traits\humanoid
-version: 1.0.0
-api: 3.0.0
-authors: [PresentKim, Blugin-team]
+version: 1.0.1
+api: 4.0.0
+authors: PresentKim
 description: Trait for humanoid entity class
 ...
