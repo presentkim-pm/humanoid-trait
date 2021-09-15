@@ -1,8 +1,8 @@
 --- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/PresentKim/humanoid-trait
 branches:
-  - main
+  - pm4
 projects:
-  humanoid-trait:
+  humanoid-trait-pm4:
     model: virion
     type: library
     lint:
