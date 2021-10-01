@@ -29,6 +29,7 @@ namespace kim\present\traits\humanoid;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
@@ -36,6 +37,7 @@ use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\skin\SkinData;
 use pocketmine\player\Player;
@@ -61,7 +63,7 @@ trait HumanoidTrait{
         $addPlayerPacket->pitch = $this->location->pitch;
         $addPlayerPacket->yaw = $this->location->yaw;
         $addPlayerPacket->headYaw = $this->getHeadYaw();
-        $addPlayerPacket->item = $this->getItemInHand();
+        $addPlayerPacket->item = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand()));
         $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
         $addPlayerPacket->metadata = $this->getAllNetworkData();
 
@@ -70,14 +72,16 @@ trait HumanoidTrait{
         $playerListRemovePacket->entries = [PlayerListEntry::createRemovalEntry($this->uuid)];
 
         $this->server->broadcastPackets([$player], [$playerListAddPacket, $addPlayerPacket, $playerListRemovePacket]);
-        $this->sendEquipment($this->getItemInOffHand(), ContainerIds::OFFHAND);
+        if($this->offhandItem !== null){
+            $this->sendEquipment($this->offhandItem, ContainerIds::OFFHAND, 0, [$player]);
+        }
     }
 
     public function getHeadYaw() : float{
         return $this->location->yaw;
     }
 
-    public function broadcastMovement(bool $teleport = true) : void{
+    public function broadcastMovement(bool $teleport = false) : void{
         $pk = new MovePlayerPacket();
         $pk->entityRuntimeId = $this->id;
         $pk->position = $this->getOffsetPosition($this->location);
@@ -85,7 +89,7 @@ trait HumanoidTrait{
         $pk->yaw = $this->location->y;
         $pk->headYaw = $this->getHeadYaw();
         $pk->mode = $teleport ? MovePlayerPacket::MODE_TELEPORT : MovePlayerPacket::MODE_NORMAL;
-        $this->location->world->broadcastPacketToViewers($this->getPosition(), $pk);
+        $this->location->world->broadcastPacketToViewers($this->location, $pk);
     }
 
     public function getBaseOffset() : float{
@@ -116,13 +120,13 @@ trait HumanoidTrait{
     /** @param Player[]|null $targets */
     public function sendSkin(?array $targets = null) : void{
         $pk = new PlayerSkinPacket();
-        $pk->uuid = $this->getUniqueId();
+        $pk->uuid = $this->uuid;
         $pk->skin = $this->skinData;
         $this->server->broadcastPackets($targets ?? $this->hasSpawned, [$pk]);
     }
 
     public function getItemInHand() : Item{
-        return $this->heldItem ?? ItemFactory::getInstance()->get(0);
+        return $this->heldItem ?? ItemFactory::air();
     }
 
     public function setItemInHand(Item $item) : void{
@@ -131,7 +135,7 @@ trait HumanoidTrait{
     }
 
     public function getItemInOffHand() : Item{
-        return $this->offhandItem ?? ItemFactory::getInstance()->get(0);
+        return $this->offhandItem ?? ItemFactory::air();
     }
 
     public function setItemInOffHand(Item $item) : void{
@@ -141,12 +145,13 @@ trait HumanoidTrait{
 
     /** @param Player[]|null $targets */
     public function sendEquipment(Item $item, int $windowId, int $inventorySlot = 0, ?array $targets = null) : void{
-        $pk = new MobEquipmentPacket();
-        $pk->entityRuntimeId = $this->getId();
-        $pk->item = $item;
-        $pk->inventorySlot = $pk->hotbarSlot = $inventorySlot;
-        $pk->windowId = $windowId;
-
-        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [$pk]);
+        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
+            MobEquipmentPacket::create(
+                $this->getId(),
+                ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($item)),
+                $inventorySlot,
+                $windowId
+            )
+        ]);
     }
 }
