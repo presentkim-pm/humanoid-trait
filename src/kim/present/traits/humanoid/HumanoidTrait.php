@@ -26,6 +26,7 @@ declare(strict_types=1);
 
 namespace kim\present\traits\humanoid;
 
+use pocketmine\entity\Entity;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\math\Vector3;
@@ -51,6 +52,7 @@ trait HumanoidTrait{
     protected ?Item $offhandItem = null;
 
     protected function sendSpawnPacket(Player $player) : void{
+        /** @var Entity $this */
         $playerListAddPacket = new PlayerListPacket();
         $playerListAddPacket->type = PlayerListPacket::TYPE_ADD;
         $playerListAddPacket->entries = [PlayerListEntry::createAdditionEntry($this->uuid, $this->getId(), $this->getNameTag(), $this->skinData)];
@@ -78,10 +80,12 @@ trait HumanoidTrait{
     }
 
     public function getHeadYaw() : float{
+        /** @var Entity $this */
         return $this->location->yaw;
     }
 
     public function broadcastMovement(bool $teleport = false) : void{
+        /** @var Entity $this */
         $pk = new MovePlayerPacket();
         $pk->entityRuntimeId = $this->id;
         $pk->position = $this->getOffsetPosition($this->location);
@@ -119,6 +123,7 @@ trait HumanoidTrait{
 
     /** @param Player[]|null $targets */
     public function sendSkin(?array $targets = null) : void{
+        /** @var Entity $this */
         $pk = new PlayerSkinPacket();
         $pk->uuid = $this->uuid;
         $pk->skin = $this->skinData;
@@ -145,6 +150,7 @@ trait HumanoidTrait{
 
     /** @param Player[]|null $targets */
     public function sendEquipment(Item $item, int $windowId, int $inventorySlot = 0, ?array $targets = null) : void{
+        /** @var Entity $this */
         $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
             MobEquipmentPacket::create(
                 $this->getId(),
