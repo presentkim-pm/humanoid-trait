@@ -36,11 +36,15 @@ use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
+use pocketmine\network\mcpe\protocol\types\DeviceOS;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
+use pocketmine\network\mcpe\protocol\types\entity\StringMetadataProperty;
+use pocketmine\network\mcpe\protocol\types\GameMode;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\skin\SkinData;
+use pocketmine\network\mcpe\protocol\UpdateAbilitiesPacket;
 use pocketmine\player\Player;
 use Ramsey\Uuid\UuidInterface;
 
@@ -53,27 +57,34 @@ trait HumanoidTrait{
 
     protected function sendSpawnPacket(Player $player) : void{
         /** @var Entity $this */
-        $playerListAddPacket = new PlayerListPacket();
-        $playerListAddPacket->type = PlayerListPacket::TYPE_ADD;
-        $playerListAddPacket->entries = [PlayerListEntry::createAdditionEntry($this->uuid, $this->getId(), $this->getNameTag(), $this->skinData)];
-
-        $addPlayerPacket = new AddPlayerPacket();
-        $addPlayerPacket->uuid = $this->uuid;
-        $addPlayerPacket->username = "";
-        $addPlayerPacket->actorRuntimeId = $this->id;
-        $addPlayerPacket->position = new Vector3(0, 0, 0);
-        $addPlayerPacket->pitch = $this->location->pitch;
-        $addPlayerPacket->yaw = $this->location->yaw;
-        $addPlayerPacket->headYaw = $this->getHeadYaw();
-        $addPlayerPacket->item = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand()));
         $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
-        $addPlayerPacket->metadata = $this->getAllNetworkData();
 
-        $playerListRemovePacket = new PlayerListPacket();
-        $playerListRemovePacket->type = PlayerListPacket::TYPE_REMOVE;
-        $playerListRemovePacket->entries = [PlayerListEntry::createRemovalEntry($this->uuid)];
+        $session = $player->getNetworkSession();
+        $session->sendDataPacket(PlayerListPacket::add([PlayerListEntry::createAdditionEntry($this->uuid, $this->id, $this->getName(), $this->skinData)]));
+        $session->sendDataPacket(AddPlayerPacket::create(
+            $this->uuid,
+            $this->getName(),
+            $this->id,
+            "",
+            $this->location->asVector3(),
+            $this->getMotion(),
+            $this->location->pitch,
+            $this->location->yaw,
+            $this->getHeadYaw(),
+            ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->heldItem)),
+            GameMode::SURVIVAL,
+            $this->getAllNetworkData(),
+            new UpdateAbilitiesPacket(),
+            [], // entity links
+            "",
+            DeviceOS::UNKNOWN
+        ));
+        $session->sendDataPacket(PlayerListPacket::remove([PlayerListEntry::createRemovalEntry($this->uuid)]));
 
-        $this->server->broadcastPackets([$player], [$playerListAddPacket, $addPlayerPacket, $playerListRemovePacket]);
+        $this->sendData([$player], [EntityMetadataProperties::NAMETAG => new StringMetadataProperty($this->getNameTag())]);
+        if($this->heldItem !== null){
+            $this->sendEquipment($this->heldItem, ContainerIds::INVENTORY, 0, [$player]);
+        }
         if($this->offhandItem !== null){
             $this->sendEquipment($this->offhandItem, ContainerIds::OFFHAND, 0, [$player]);
         }
