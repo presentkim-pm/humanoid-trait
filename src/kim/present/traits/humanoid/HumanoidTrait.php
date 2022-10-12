@@ -28,7 +28,7 @@ namespace kim\present\traits\humanoid;
 
 use pocketmine\entity\Entity;
 use pocketmine\item\Item;
-use pocketmine\item\ItemFactory;
+use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
@@ -60,7 +60,7 @@ trait HumanoidTrait{
         $addPlayerPacket = new AddPlayerPacket();
         $addPlayerPacket->uuid = $this->uuid;
         $addPlayerPacket->username = "";
-        $addPlayerPacket->entityRuntimeId = $this->id;
+        $addPlayerPacket->actorRuntimeId = $this->id;
         $addPlayerPacket->position = new Vector3(0, 0, 0);
         $addPlayerPacket->pitch = $this->location->pitch;
         $addPlayerPacket->yaw = $this->location->yaw;
@@ -87,7 +87,7 @@ trait HumanoidTrait{
     public function broadcastMovement(bool $teleport = false) : void{
         /** @var Entity $this */
         $pk = new MovePlayerPacket();
-        $pk->entityRuntimeId = $this->id;
+        $pk->actorRuntimeId = $this->id;
         $pk->position = $this->getOffsetPosition($this->location);
         $pk->pitch = $this->location->pitch;
         $pk->yaw = $this->location->y;
@@ -131,7 +131,7 @@ trait HumanoidTrait{
     }
 
     public function getItemInHand() : Item{
-        return $this->heldItem ?? ItemFactory::air();
+        return $this->heldItem ?? VanillaItems::AIR();
     }
 
     public function setItemInHand(Item $item) : void{
@@ -140,7 +140,7 @@ trait HumanoidTrait{
     }
 
     public function getItemInOffHand() : Item{
-        return $this->offhandItem ?? ItemFactory::air();
+        return $this->offhandItem ?? VanillaItems::AIR();
     }
 
     public function setItemInOffHand(Item $item) : void{
@@ -153,9 +153,10 @@ trait HumanoidTrait{
         /** @var Entity $this */
         $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
             MobEquipmentPacket::create(
-                $this->getId(),
+                $this->id,
                 ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($item)),
                 $inventorySlot,
+                0,
                 $windowId
             )
         ]);
