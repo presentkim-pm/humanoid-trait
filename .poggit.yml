@@ -1,9 +1,9 @@
 ---
 branches:
-  - pm4
+  - main
 
 projects:
-  humanoid-trait-pm4:
+  humanoid-trait:
     model: virion
     type: library
     lint:
