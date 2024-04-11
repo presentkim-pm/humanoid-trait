@@ -11,9 +11,9 @@
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the MIT License. see <https://opensource.org/licenses/MIT>.
  *
- * @author  PresentKim (debe3721@gmail.com)
- * @link    https://github.com/PresentKim
- * @license https://opensource.org/licenses/MIT MIT License
+ * @author       PresentKim (debe3721@gmail.com)
+ * @link         https://github.com/PresentKim
+ * @license      https://opensource.org/licenses/MIT MIT License
  *
  *   (\ /)
  *  ( . .) ♥
@@ -60,7 +60,9 @@ trait HumanoidTrait{
         $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
 
         $session = $player->getNetworkSession();
-        $session->sendDataPacket(PlayerListPacket::add([PlayerListEntry::createAdditionEntry($this->uuid, $this->id, $this->getName(), $this->skinData)]));
+        $session->sendDataPacket(PlayerListPacket::add([
+            PlayerListEntry::createAdditionEntry($this->uuid, $this->id, $this->getName(), $this->skinData)
+        ]));
         $session->sendDataPacket(AddPlayerPacket::create(
             $this->uuid,
             $this->getName(),
@@ -81,7 +83,8 @@ trait HumanoidTrait{
         ));
         $session->sendDataPacket(PlayerListPacket::remove([PlayerListEntry::createRemovalEntry($this->uuid)]));
 
-        $this->sendData([$player], [EntityMetadataProperties::NAMETAG => new StringMetadataProperty($this->getNameTag())]);
+        $this->sendData([$player],
+            [EntityMetadataProperties::NAMETAG => new StringMetadataProperty($this->getNameTag())]);
         if($this->heldItem !== null){
             $this->sendEquipment($this->heldItem, ContainerIds::INVENTORY, 0, [$player]);
         }
