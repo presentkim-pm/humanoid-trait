@@ -30,23 +30,28 @@ use pocketmine\entity\Entity;
 use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\convert\TypeConverter;
+use pocketmine\network\mcpe\NetworkBroadcastUtils;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
+use pocketmine\network\mcpe\protocol\types\AbilitiesData;
+use pocketmine\network\mcpe\protocol\types\AbilitiesLayer;
+use pocketmine\network\mcpe\protocol\types\command\CommandPermissions;
 use pocketmine\network\mcpe\protocol\types\DeviceOS;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
+use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
 use pocketmine\network\mcpe\protocol\types\entity\StringMetadataProperty;
 use pocketmine\network\mcpe\protocol\types\GameMode;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
+use pocketmine\network\mcpe\protocol\types\PlayerPermissions;
 use pocketmine\network\mcpe\protocol\types\skin\SkinData;
-use pocketmine\network\mcpe\protocol\UpdateAbilitiesPacket;
 use pocketmine\player\Player;
 use Ramsey\Uuid\UuidInterface;
+use function array_fill;
 
 /** This trait override most methods in the {@link Entity} abstract class. */
 trait HumanoidTrait{
@@ -60,7 +65,7 @@ trait HumanoidTrait{
         $this->getNetworkProperties()->setByte(EntityMetadataProperties::COLOR, 0);
 
         $session = $player->getNetworkSession();
-        $session->sendDataPacket(PlayerListPacket::add([
+        $session->sendDataPacket(PlayerListPacket::create([
             PlayerListEntry::createAdditionEntry($this->uuid, $this->id, $this->getName(), $this->skinData)
         ]));
         $session->sendDataPacket(AddPlayerPacket::create(
@@ -73,15 +78,25 @@ trait HumanoidTrait{
             $this->location->pitch,
             $this->location->yaw,
             $this->getHeadYaw(),
-            ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->heldItem)),
+            ItemStackWrapper::legacy($session->getTypeConverter()->coreItemStackToNet($this->getItemInHand())),
             GameMode::SURVIVAL,
             $this->getAllNetworkData(),
-            new UpdateAbilitiesPacket(),
+            new PropertySyncData([], []),
+            new AbilitiesData(CommandPermissions::NORMAL, PlayerPermissions::VISITOR, $this->id, [
+                new AbilitiesLayer(
+                    AbilitiesLayer::LAYER_BASE,
+                    array_fill(0, AbilitiesLayer::NUMBER_OF_ABILITIES, false),
+                    0.0,
+                    0.0,
+                    0.0
+                )
+            ]),
             [], // entity links
+            null, // passenger block data
             "",
             DeviceOS::UNKNOWN
         ));
-        $session->sendDataPacket(PlayerListPacket::remove([PlayerListEntry::createRemovalEntry($this->uuid)]));
+        $session->sendDataPacket(PlayerListPacket::create([PlayerListEntry::createRemovalEntry($this->uuid)]));
 
         $this->sendData([$player],
             [EntityMetadataProperties::NAMETAG => new StringMetadataProperty($this->getNameTag())]);
@@ -100,21 +115,24 @@ trait HumanoidTrait{
 
     public function broadcastMovement(bool $teleport = false) : void{
         /** @var Entity $this */
-        $pk = new MovePlayerPacket();
-        $pk->actorRuntimeId = $this->id;
-        $pk->position = $this->getOffsetPosition($this->location);
-        $pk->pitch = $this->location->pitch;
-        $pk->yaw = $this->location->y;
-        $pk->headYaw = $this->getHeadYaw();
-        $pk->mode = $teleport ? MovePlayerPacket::MODE_TELEPORT : MovePlayerPacket::MODE_NORMAL;
-        $this->location->world->broadcastPacketToViewers($this->location, $pk);
+        NetworkBroadcastUtils::broadcastPackets($this->hasSpawned, [MovePlayerPacket::simple(
+            $this->id,
+            $this->getOffsetPosition($this->location),
+            $this->location->pitch,
+            $this->location->yaw,
+            $this->getHeadYaw(),
+            $teleport ? MovePlayerPacket::MODE_TELEPORT : MovePlayerPacket::MODE_NORMAL,
+            $this->onGround,
+            0,
+            0
+        )]);
     }
 
     public function getBaseOffset() : float{
         return 1.62;
     }
 
-    public function getUniqueId() : ?UuidInterface{
+    public function getUniqueId() : UuidInterface{
         return $this->uuid;
     }
 
@@ -138,10 +156,9 @@ trait HumanoidTrait{
     /** @param Player[]|null $targets */
     public function sendSkin(?array $targets = null) : void{
         /** @var Entity $this */
-        $pk = new PlayerSkinPacket();
-        $pk->uuid = $this->uuid;
-        $pk->skin = $this->skinData;
-        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [$pk]);
+        NetworkBroadcastUtils::broadcastPackets($targets ?? $this->hasSpawned, [
+            PlayerSkinPacket::create($this->uuid, "", "", $this->skinData)
+        ]);
     }
 
     public function getItemInHand() : Item{
@@ -165,14 +182,20 @@ trait HumanoidTrait{
     /** @param Player[]|null $targets */
     public function sendEquipment(Item $item, int $windowId, int $inventorySlot = 0, ?array $targets = null) : void{
         /** @var Entity $this */
-        $this->server->broadcastPackets($targets ?? $this->hasSpawned, [
-            MobEquipmentPacket::create(
+        foreach($targets ?? $this->hasSpawned as $player){
+            if(!$player->isConnected()){
+                continue;
+            }
+
+            // The item is converted with each session's own type converter, as it can differ per protocol
+            $session = $player->getNetworkSession();
+            $session->sendDataPacket(MobEquipmentPacket::create(
                 $this->id,
-                ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($item)),
+                ItemStackWrapper::legacy($session->getTypeConverter()->coreItemStackToNet($item)),
                 $inventorySlot,
                 0,
                 $windowId
-            )
-        ]);
+            ));
+        }
     }
 }
